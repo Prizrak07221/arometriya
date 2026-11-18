@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>ARометрия — геометрияны үш өлшемде үйрен</title>
+<meta name="description" content="Геометрияны толықтырылған шындық арқылы оқытуға арналған қазақ тіліндегі қосымша. 7–9 сынып." />
+<meta name="theme-color" content="#1b2a3a" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="icon" href="./assets/icon-192.png" />
+<link rel="apple-touch-icon" href="./assets/icon-192.png" />
+<link rel="stylesheet" href="./styles.css" />
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js",
+    "three/addons/": "./vendor/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="back" id="backBtn" hidden aria-label="Артқа">←</button>
+  <div class="brand">
+    <span class="logo">AR</span>
+    <div>
+      <h1 id="title">ARометрия</h1>
+      <p id="subtitle">Геометрияны үш өлшемде үйрен</p>
+    </div>
+  </div>
+</header>
+
+<main id="app">
+
+  <!-- ТАҚЫРЫПТАР -->
+  <section class="view" id="view-topics">
+    <p class="lead">
+      Әр тақырыпты қолыңмен айналдырып, өлшемін өзгертіп көр. Содан кейін
+      өзіңді үш сұрақпен тексер.
+    </p>
+    <div class="chips" id="filterChips"></div>
+    <div class="grid" id="topicGrid"></div>
+  </section>
+
+  <!-- ТАҚЫРЫП -->
+  <section class="view" id="view-topic" hidden>
+    <div class="stage">
+      <video id="camFeed" playsinline muted hidden></video>
+      <canvas id="canvas"></canvas>
+      <div class="readout" id="readout"></div>
+      <div class="stagebtns">
+        <button class="ghost" id="arBtn">AR режимі</button>
+        <button class="ghost" id="resetViewBtn">Көріністі қалпына келтіру</button>
+      </div>
+    </div>
+    <div class="panel" id="controls"></div>
+    <div class="theory" id="theory"></div>
+    <button class="primary wide" id="quizBtn">Өзіңді тексер (3 сұрақ)</button>
+  </section>
+
+  <!-- ТЕСТ -->
+  <section class="view" id="view-quiz" hidden>
+    <div class="quizhead">
+      <span id="quizCounter"></span>
+      <span id="quizScore"></span>
+    </div>
+    <h2 id="quizQuestion"></h2>
+    <div class="options" id="quizOptions"></div>
+    <div class="explain" id="quizExplain" hidden></div>
+    <button class="primary wide" id="quizNext" hidden>Келесі</button>
+  </section>
+
+  <!-- НӘТИЖЕ -->
+  <section class="view" id="view-progress" hidden>
+    <h2>Менің нәтижем</h2>
+    <div class="summary" id="progressSummary"></div>
+    <div class="progresslist" id="progressList"></div>
+    <button class="danger wide" id="resetProgress">Нәтижені тазалау</button>
+  </section>
+
+  <!-- ТУРАЛЫ -->
+  <section class="view" id="view-about" hidden>
+    <h2>Жоба туралы</h2>
+    <p>
+      <strong>ARометрия</strong> — геометриялық фигуралар мен денелерді үш өлшемде
+      көрсететін, қазақ тіліндегі оқу қосымшасы. Ол «Зерде» ғылыми жобалар
+      байқауына дайындалған зерттеу жұмысының практикалық бөлігі.
+    </p>
+    <p>
+      Қосымшада 7–9 сынып бағдарламасының 12 тақырыбы қамтылған. Әр тақырыпта
+      фигураны айналдыруға, өлшемін өзгертуге, дененің жазбасын ашуға және
+      қимасын қарауға болады. Соңында үш сұрақтан тұратын тест бар.
+    </p>
+    <h3>AR режимі</h3>
+    <p>
+      «AR режимі» түймесі құрылғыңа қарай екі жолмен жұмыс істейді: WebXR
+      қолдайтын телефондарда (ARCore бар Android) фигура нақты бөлменің ішінде
+      орналасады, қалған құрылғыларда камера кескіні фон ретінде қолданылады.
+      Екі режимде де камераға рұқсат сұралады және бейне құрылғыдан ешқайда
+      жіберілмейді.
+    </p>
+    <h3>Авторлары</h3>
+    <p>
+      Андакулов Арон, Шерали Шерхан — Alan International School, 8-сынып.<br />
+      Ғылыми жетекшісі: Турумбеков Акмырза Динмухамедович.
+    </p>
+    <p class="muted" id="buildInfo"></p>
+  </section>
+
+</main>
+
+<nav class="tabbar">
+  <button data-view="topics" class="active">Тақырыптар</button>
+  <button data-view="progress">Нәтижем</button>
+  <button data-view="about">Туралы</button>
+</nav>
+
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+# Claude Code жергілікті баптаулары
+.claude/
+
+# жүйелік файлдар
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# тәуелділіктер (жоба оларсыз жұмыс істейді)
+node_modules/
