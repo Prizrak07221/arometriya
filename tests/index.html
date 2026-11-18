@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="utf-8" />
+<title>ARометрия — тануды тексеру</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 24px; background: #0f1823; color: #e7eef5; }
+  h1 { font-size: 1.2rem; }
+  table { border-collapse: collapse; margin: 16px 0; }
+  th, td { border: 1px solid #2c3c4e; padding: 5px 9px; text-align: left; font-size: .88rem; }
+  th { background: #1f2d3d; }
+  .ok { color: #52b788; }
+  .near { color: #e0a45f; }
+  .bad { color: #e07a5f; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  figure { margin: 0; }
+  figure img { width: 100%; border-radius: 8px; display: block; }
+  figcaption { font-size: .76rem; padding-top: 4px; }
+  canvas { display: none; }
+  #summary { font-size: 1rem; padding: 12px 14px; background: #17222f; border: 1px solid #2c3c4e; border-radius: 10px; }
+</style>
+</head>
+<body>
+<h1>Қолмен салынған фигураны тану — синтетикалық сынақ</h1>
+<p>Суреттер <code>tests/make_fixtures.py</code> арқылы жасалған. Олар нақты оқушы
+сызбалары емес: қолдың дірілі, үзік сызық және әркелкі жарық имитацияланған.</p>
+<div id="summary">Жүктелуде…</div>
+<div id="table"></div>
+<div class="grid" id="grid"></div>
+
+<script type="module">
+import { analyze, imageDataFrom, LABELS, TOPIC_FOR } from "../js/recognize.js";
+
+const KINDS = ["triangle", "square", "rectangle", "parallelogram", "trapezoid", "circle"];
+
+const load = (src) => new Promise((res, rej) => {
+  const img = new Image();
+  img.onload = () => res(img);
+  img.onerror = rej;
+  img.src = src;
+});
+
+// Екі жиын: бірінші — алгоритмді баптағанда қаралған, екіншісі — баптау
+// аяқталған соң басқа тұқымдармен жасалып, бір рет қана өлшенген.
+const SETS = [
+  { dir: "fixtures", title: "Баптау жиыны (алгоритм осыған қарап түзетілді)" },
+  { dir: "fixtures-holdout", title: "Тексеру жиыны (баптауға қатыспаған)" },
+];
+
+let exact = 0, topicOk = 0, failed = 0;
+const rows = [];
+const confusion = {};
+const perSet = [];
+
+for (const set of SETS) {
+let sExact = 0, sTotal = 0;
+const names = await (await fetch(`./${set.dir}/index.json`)).json();
+for (const name of names) {
+  const truth = name.replace(/-\d+\.(png|jpg)$/, "");
+  const img = await load(`./${set.dir}/` + name);
+  const t0 = performance.now();
+  const r = analyze(imageDataFrom(img));
+  const ms = performance.now() - t0;
+
+  const got = r.ok ? r.label : "—";
+  const isExact = got === truth;
+  const sameTopic = r.ok && TOPIC_FOR[got] === TOPIC_FOR[truth];
+  if (isExact) exact++;
+  if (sameTopic) topicOk++;
+  if (!r.ok) failed++;
+
+  confusion[truth] = confusion[truth] || {};
+  confusion[truth][got] = (confusion[truth][got] || 0) + 1;
+
+  rows.push({ name, truth, got, ok: r.ok, isExact, sameTopic, ms,
+    conf: r.confidence, alt: (r.alternatives || []).map((a) => a.label).join(", "),
+    reason: r.reason || "", verts: r.polygon ? r.polygon.length : 0,
+    circ: r.circularity });
+
+  sTotal++; if (isExact) sExact++;
+
+  const fig = document.createElement("figure");
+  const cls = isExact ? "ok" : sameTopic ? "near" : "bad";
+  fig.innerHTML = `<img src="./${set.dir}/${name}" alt="" />
+    <figcaption class="${cls}">${truth} → <b>${r.ok ? LABELS[got] : "танылмады"}</b>
+    ${r.confidence ? " · " + Math.round(r.confidence * 100) + "%" : ""}</figcaption>`;
+  document.getElementById("grid").appendChild(fig);
+}
+perSet.push({ ...set, exact: sExact, total: sTotal });
+}
+
+const total = rows.length;
+document.getElementById("summary").innerHTML =
+  perSet.map((s) => `${s.title}: <b>${s.exact} / ${s.total} ` +
+    `(${Math.round(s.exact / s.total * 100)}%)</b>`).join("<br />") + "<hr />" +
+  `Жиынтығы: ${exact} / ${total} (${Math.round(exact / total * 100)}%)<br />` +
+  `Тақырып дұрыс табылған: ${topicOk} / ${total} (${Math.round(topicOk / total * 100)}%)<br />` +
+  `Мүлде танылмаған: ${failed}<br />` +
+  `Орташа уақыты: ${(rows.reduce((s, r) => s + r.ms, 0) / total).toFixed(1)} мс`;
+
+const t = document.createElement("table");
+t.innerHTML = "<tr><th>Файл</th><th>Шын</th><th>Табылған</th><th>Сенім</th>" +
+  "<th>Төбе</th><th>Дөңгелектік</th><th>Баламалар</th><th>Себеп</th></tr>" +
+  rows.map((r) => `<tr class="${r.isExact ? "ok" : r.sameTopic ? "near" : "bad"}">
+    <td>${r.name}</td><td>${r.truth}</td><td>${r.got}</td>
+    <td>${r.conf ? Math.round(r.conf * 100) + "%" : "—"}</td>
+    <td>${r.verts}</td><td>${r.circ ? r.circ.toFixed(2) : "—"}</td>
+    <td>${r.alt}</td><td>${r.reason}</td></tr>`).join("");
+document.getElementById("table").appendChild(t);
+
+window.__results = { exact, topicOk, failed, total, rows, confusion };
+console.log("RESULT", JSON.stringify({ exact, topicOk, failed, total, confusion }));
+</script>
+</body>
+</html>

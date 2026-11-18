@@ -1,5 +1,5 @@
 // Офлайн жұмыс: қосымшаның барлық файлын алдын ала кэштеу
-const CACHE = "arometriya-v2";
+const CACHE = "arometriya-v3";
 
 const ASSETS = [
   "./",
@@ -12,6 +12,8 @@ const ASSETS = [
   "./js/ar.js",
   "./js/quiz.js",
   "./js/progress.js",
+  "./js/scan.js",
+  "./js/recognize.js",
   "./js/geometry/plane.js",
   "./js/geometry/solids.js",
   "./vendor/three.module.js",

@@ -4,6 +4,7 @@ import { TOPICS, CATEGORIES, byId, defaultParams } from "./topics.js";
 import { ARMode } from "./ar.js";
 import { Quiz } from "./quiz.js";
 import * as progress from "./progress.js";
+import { Scanner } from "./scan.js";
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -11,6 +12,7 @@ const views = {
   topics: $("#view-topics"),
   topic: $("#view-topic"),
   quiz: $("#view-quiz"),
+  scan: $("#view-scan"),
   progress: $("#view-progress"),
   about: $("#view-about"),
 };
@@ -31,6 +33,13 @@ const el = {
   resetView: $("#resetViewBtn"),
   quizBtn: $("#quizBtn"),
   arStatus: $("#arStatus"),
+  scanFeed: $("#scanFeed"),
+  scanCanvas: $("#scanCanvas"),
+  scanHint: $("#scanHint"),
+  scanStart: $("#scanStart"),
+  scanShot: $("#scanShot"),
+  scanFile: $("#scanFile"),
+  scanResult: $("#scanResult"),
   progressSummary: $("#progressSummary"),
   progressList: $("#progressList"),
   resetProgress: $("#resetProgress"),
@@ -64,6 +73,9 @@ function show(name, opts = {}) {
     el.title.textContent = "Менің нәтижем";
     el.subtitle.textContent = "Тест нәтижелерің осы құрылғыда сақталады";
     renderProgress();
+  } else if (name === "scan") {
+    el.title.textContent = "Сызбаны тану";
+    el.subtitle.textContent = "Дәптердегі фигураңды камераға көрсет";
   } else if (name === "about") {
     el.title.textContent = "Жоба туралы";
     el.subtitle.textContent = "«Зерде» ғылыми жобасы";
@@ -316,6 +328,7 @@ el.resetProgress.addEventListener("click", () => {
 for (const btn of document.querySelectorAll(".tabbar button")) {
   btn.addEventListener("click", () => {
     if (ar && ar.active) ar.stop();
+    if (btn.dataset.view !== "scan") scanner.stopCamera();
     show(btn.dataset.view);
   });
 }
@@ -328,6 +341,19 @@ el.back.addEventListener("click", () => {
   if (ar && ar.active) ar.stop();
   show("topics");
 });
+
+const scanner = new Scanner(
+  {
+    feed: el.scanFeed,
+    canvas: el.scanCanvas,
+    hint: el.scanHint,
+    startBtn: el.scanStart,
+    shotBtn: el.scanShot,
+    fileInput: el.scanFile,
+    result: el.scanResult,
+  },
+  { openTopic: (id) => openTopic(id) },
+);
 
 /* ---------------------------------------------------------- */
 /*  Бастау                                                     */

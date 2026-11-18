@@ -73,6 +73,60 @@
     <button class="primary wide" id="quizNext" hidden>Келесі</button>
   </section>
 
+  <!-- СЫЗБАНЫ ТАНУ -->
+  <section class="view" id="view-scan" hidden>
+    <p class="lead">
+      Дәптеріңе салған фигураңды камераға көрсет — қосымша оны танып,
+      сәйкес тақырыпты ашады. Фигура толық көрінуі және фон ашық болуы керек.
+    </p>
+
+    <div class="stage scan">
+      <video id="scanFeed" playsinline muted hidden></video>
+      <canvas id="scanCanvas" hidden></canvas>
+      <div class="scanhint" id="scanHint">Камераны қосып, сызбаңды көрсет</div>
+    </div>
+
+    <div class="panel">
+      <div class="ctl row">
+        <button class="primary" id="scanStart">Камераны қосу</button>
+        <button class="ghost" id="scanShot" disabled>Сканерлеу</button>
+        <label class="ghost filebtn">
+          Сурет таңдау
+          <input type="file" id="scanFile" accept="image/*" hidden />
+        </label>
+      </div>
+    </div>
+
+    <div class="result" id="scanResult" hidden></div>
+
+    <div class="theory">
+      <h3>Тану қалай жұмыс істейді</h3>
+      <p>
+        Кескін алдымен сұр түске келтіріліп, бейімделетін табалдырықпен
+        қара-ақ түрге түрлендіріледі — бұл әркелкі жарықта да сызықты бөліп
+        алуға мүмкіндік береді.
+      </p>
+      <p>
+        Содан кейін сияның байланысқан бөліктері жиналады. Оқушы фигураны
+        жиі бірнеше бөлек сызықпен салатындықтан, өлшемі жеткілікті әрі
+        жақын орналасқан бөліктер біріктіріледі.
+      </p>
+      <p>
+        Жиналған нүктелердің дөңес қабығы құрылады. Біз танитын алты
+        фигураның бәрі дөңес болғандықтан, қабық — дәл сол фигураның контуры.
+        Қабық бірте-бірте жеңілдетіліп, төбе саны анықталады: келесі төбені
+        қосу сәйкестікті айтарлықтай жақсартпайтын сан — фигураның шын төбе
+        саны. Шеңбер бөлек, дөңгелектік коэффициенті арқылы ажыратылады.
+      </p>
+      <p>
+        Соңында төртбұрыштар қабырғаларының параллельдігі, ұзындығы және
+        бұрыштары бойынша жіктеледі. Жауаптың сенімділігі пайызбен
+        көрсетіледі; ол 70 пайыздан төмен болса, қосымша бір емес, екі нұсқа
+        ұсынады.
+      </p>
+    </div>
+  </section>
+
   <!-- НӘТИЖЕ -->
   <section class="view" id="view-progress" hidden>
     <h2>Менің нәтижем</h2>
@@ -114,6 +168,7 @@
 
 <nav class="tabbar">
   <button data-view="topics" class="active">Тақырыптар</button>
+  <button data-view="scan">Сызбаны тану</button>
   <button data-view="progress">Нәтижем</button>
   <button data-view="about">Туралы</button>
 </nav>
