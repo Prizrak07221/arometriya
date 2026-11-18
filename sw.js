@@ -1,5 +1,5 @@
 // Офлайн жұмыс: қосымшаның барлық файлын алдын ала кэштеу
-const CACHE = "arometriya-v1";
+const CACHE = "arometriya-v2";
 
 const ASSETS = [
   "./",

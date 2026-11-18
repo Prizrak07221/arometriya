@@ -30,6 +30,7 @@ const el = {
   arBtn: $("#arBtn"),
   resetView: $("#resetViewBtn"),
   quizBtn: $("#quizBtn"),
+  arStatus: $("#arStatus"),
   progressSummary: $("#progressSummary"),
   progressList: $("#progressList"),
   resetProgress: $("#resetProgress"),
@@ -137,11 +138,19 @@ function openTopic(id) {
       stage: el.stage,
       video: el.video,
       button: el.arBtn,
-      onMessage: (text) => { if (text) setReadout(text); },
+      onStatus: setArStatus,
+    });
+    // қолдауды алдын ала тексереміз: басқан сәтте await жасауға болмайды
+    ar.init().then((xr) => {
+      el.arBtn.textContent = xr ? "AR режимі" : "Камера режимі";
+      el.arBtn.title = xr
+        ? "Фигураны бөлменің ішінен көру"
+        : "Бұл браузерде WebXR жоқ — камера тек фон ретінде қолданылады";
     });
     el.arBtn.addEventListener("click", () => ar.toggle());
     el.resetView.addEventListener("click", () => viewer.resetView());
   }
+  setArStatus("");
 
   const instance = viewer.setContent(topic, { setReadout });
   instance.update(params);
@@ -152,6 +161,12 @@ function openTopic(id) {
 
 function setReadout(text) {
   el.readout.textContent = text;
+}
+
+function setArStatus(text, kind = "info") {
+  el.arStatus.textContent = text || "";
+  el.arStatus.className = "arstatus " + kind;
+  el.arStatus.hidden = !text;
 }
 
 function renderTheory(topic) {

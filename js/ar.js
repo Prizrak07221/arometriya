@@ -1,14 +1,20 @@
 // AR режимі: WebXR қолдаса — нақты AR, қолдамаса — камера фоны
+//
+// МАҢЫЗДЫ: requestSession("immersive-ar") пайдаланушының тікелей әрекетін
+// (user activation) талап етеді. Түймені басқаннан кейін кез келген await
+// сол әрекеттің «күшін» жоғалтады, сондықтан қолдауды алдын ала тексеріп
+// қоямыз да, requestSession-ды түйме басылған сәтте бірден шақырамыз.
 export class ARMode {
-  constructor(viewer, { stage, video, button, onMessage }) {
+  constructor(viewer, { stage, video, button, onStatus }) {
     this.viewer = viewer;
     this.stage = stage;
     this.video = video;
     this.button = button;
-    this.onMessage = onMessage || (() => {});
+    this.onStatus = onStatus || (() => {});
     this.mode = null; // "xr" | "camera" | null
     this.session = null;
     this.stream = null;
+    this.xrSupported = false;
     this._saved = null;
   }
 
@@ -16,37 +22,64 @@ export class ARMode {
     return this.mode !== null;
   }
 
-  async supportsXR() {
+  /** Қосымша ашылғанда бір рет шақырылады */
+  async init() {
     try {
-      return !!(navigator.xr && (await navigator.xr.isSessionSupported("immersive-ar")));
+      this.xrSupported = !!(
+        navigator.xr && (await navigator.xr.isSessionSupported("immersive-ar"))
+      );
     } catch {
-      return false;
+      this.xrSupported = false;
     }
+    return this.xrSupported;
   }
 
-  async toggle() {
+  /** Түйменің өңдеушісі — әдейі async емес */
+  toggle() {
     if (this.active) {
-      await this.stop();
+      this.stop();
       return;
     }
     if (!window.isSecureContext) {
-      this.onMessage("AR режимі HTTPS арқылы ашылғанда ғана жұмыс істейді.");
+      this.onStatus("AR тек HTTPS арқылы ашылғанда жұмыс істейді.", "error");
       return;
     }
-    if (await this.supportsXR()) {
-      await this._startXR();
+    if (this.xrSupported) {
+      this._startXR();
     } else {
-      await this._startCamera();
+      this._startCamera();
+      this.onStatus(
+        "Бұл браузерде WebXR жоқ, сондықтан камера фоны қосылды: " +
+        "фигура бөлмеге бекітілмейді, оны саусақпен айналдырасың.",
+        "info",
+      );
     }
   }
 
   /* ---------------- WebXR ---------------- */
-  async _startXR() {
+  _startXR() {
+    // requestSession бірінші шақырылады — алдында ешқандай await жоқ
+    let request;
     try {
-      const session = await navigator.xr.requestSession("immersive-ar", {
-        optionalFeatures: ["dom-overlay", "local-floor"],
+      request = navigator.xr.requestSession("immersive-ar", {
+        optionalFeatures: ["dom-overlay", "local-floor", "hit-test"],
         domOverlay: { root: document.body },
       });
+    } catch (err) {
+      this._xrFailed(err);
+      return;
+    }
+
+    this.onStatus("AR сеансы дайындалып жатыр…", "info");
+
+    request.then(
+      (session) => this._attachSession(session),
+      (err) => this._xrFailed(err),
+    );
+  }
+
+  async _attachSession(session) {
+    try {
       this.session = session;
       this.mode = "xr";
 
@@ -67,14 +100,29 @@ export class ARMode {
       content.position.set(0, -0.15, -0.9);
 
       this._setLabel("AR режимінен шығу");
-      this.onMessage("Телефонды баяу жылжытып, фигураны айналып қара.");
+      this.onStatus("Телефонды баяу жылжытып, фигураны айналып қара.", "ok");
 
       session.addEventListener("end", () => this._cleanupXR());
     } catch (err) {
-      this.mode = null;
-      this.onMessage("AR сеансын бастау мүмкін болмады: " + (err && err.message ? err.message : err));
-      await this._startCamera();
+      this._cleanupXR();
+      this._xrFailed(err);
     }
+  }
+
+  _xrFailed(err) {
+    this.mode = null;
+    const name = (err && err.name) || "";
+    let text;
+    if (name === "NotAllowedError" || name === "SecurityError") {
+      text = "AR сеансына рұқсат берілмеді.";
+    } else if (name === "NotSupportedError") {
+      text = "Бұл құрылғы AR сеансын қолдамайды.";
+    } else {
+      text = "AR сеансын бастау мүмкін болмады" +
+        (err && err.message ? ": " + err.message : ".");
+    }
+    this.onStatus(text + " Камера фонына ауысып жатырмыз…", "error");
+    this._startCamera();
   }
 
   _cleanupXR() {
@@ -90,12 +138,13 @@ export class ARMode {
     this.session = null;
     this.mode = null;
     this._setLabel("AR режимі");
+    this.onStatus("");
   }
 
   /* ---------------- Камера фоны ---------------- */
   async _startCamera() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      this.onMessage("Бұл құрылғыда камераға қол жеткізу мүмкін емес.");
+      this.onStatus("Бұл браузерде камераға қол жеткізу мүмкін емес.", "error");
       return;
     }
     try {
@@ -104,22 +153,30 @@ export class ARMode {
         audio: false,
       });
     } catch (err) {
-      const name = err && err.name;
-      this.onMessage(
+      const name = (err && err.name) || "";
+      this.onStatus(
         name === "NotAllowedError"
           ? "Камераға рұқсат берілмеді. Браузер баптауынан рұқсат беріп, қайта көр."
-          : "Камераны қосу мүмкін болмады: " + (err && err.message ? err.message : err),
+          : name === "NotFoundError"
+            ? "Құрылғыдан камера табылмады."
+            : "Камераны қосу мүмкін болмады" + (err && err.message ? ": " + err.message : "."),
+        "error",
       );
       return;
     }
+
     this.video.srcObject = this.stream;
     this.video.hidden = false;
-    await this.video.play().catch(() => {});
+    try {
+      await this.video.play();
+    } catch {
+      this.onStatus("Бейнені іске қосу мүмкін болмады. Экранды бір рет басып көр.", "error");
+    }
+
     this.stage.classList.add("ar-fallback");
     this.viewer.setBackgroundTransparent(true);
     this.mode = "camera";
     this._setLabel("Камерадан шығу");
-    this.onMessage("Камера фоны қосылды. Фигураны саусақпен айналдыруға болады.");
   }
 
   async stop() {
@@ -138,7 +195,7 @@ export class ARMode {
       this.viewer.setBackgroundTransparent(false);
       this.mode = null;
       this._setLabel("AR режимі");
-      this.onMessage("");
+      this.onStatus("");
     }
   }
 
